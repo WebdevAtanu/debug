@@ -26,7 +26,7 @@ export const authService = {
   },
 
   signup: async (credentials: SignupCredentials) => {
-    const response = await api.post('/user/signup', credentials);
+    const response = await api.post('/api/user/signup', credentials);
     return response.data;
   },
 

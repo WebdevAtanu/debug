@@ -37,30 +37,44 @@ const Notifications: React.FC = () => {
     socketService.removeNotificationListener(() => {});
   };
 
-  if (loading) return <div className="loading">Loading...</div>;
+  if (loading) return <div className="flex items-center justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
 
   return (
-    <div className="notifications">
-      <h2>Notifications</h2>
-      {notifications.length === 0 ? (
-        <p>No notifications</p>
-      ) : (
-        <div className="notifications-list">
-          {notifications.map((notification) => (
-            <div
-              key={notification._id}
-              className={`notification ${notification.read ? 'read' : 'unread'}`}
-            >
-              <div className="notification-content">
-                <p>{notification.message}</p>
-                <span className="notification-date">
-                  {new Date(notification.createdAt).toLocaleString()}
-                </span>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">Notifications</h1>
+        
+        {notifications.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-12 text-center">
+            <p className="text-gray-500">No notifications</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {notifications.map((notification) => (
+              <div
+                key={notification._id}
+                className={`bg-white rounded-lg shadow p-6 border-l-4 ${
+                  notification.read ? 'border-gray-300' : 'border-indigo-600'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="text-gray-900 font-medium">{notification.message}</p>
+                    <span className="text-sm text-gray-500 mt-2 block">
+                      {new Date(notification.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                  {!notification.read && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                      New
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

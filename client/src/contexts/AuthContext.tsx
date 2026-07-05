@@ -49,7 +49,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         socketService.connect();
       }
     } catch (error) {
-      throw error;
+      console.error('Login error:', error);
+    }
+    finally {
+      setLoading(false);
     }
   };
 
@@ -62,7 +65,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         socketService.connect();
       }
     } catch (error) {
-      throw error;
+      console.error('Signup error:', error);
+    }
+    finally {
+      setLoading(false);
     }
   };
 
@@ -95,6 +101,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
