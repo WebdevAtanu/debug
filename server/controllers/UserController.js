@@ -1,8 +1,6 @@
-/// <reference path="./mytypes.d.ts" />
 import Joi from 'joi';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-import sgMail from '@sendgrid/mail';
 
 import {
   User,
@@ -12,6 +10,7 @@ import {
 import { Bug } from '../models/bugModel.js';
 import { Token } from '../models/tokenModel.js';
 import { extractUsernameFromEmail } from '../utils/index.js';
+import { sendVerificationEmail } from '../utils/emailService.js';
 
 /**
  * @route POST /user/signup
@@ -64,17 +63,7 @@ export const signup = async (req, res) => {
       });
     // create verification link and send email
     const verificationLink = `http://${req.headers.host}/api/user/verify-email?token=${token.token}`;
-    const msg = {
-      to: savedUser.email,
-      from: 'bugvilla@gmail.com',
-      subject: 'BugVilla Email Verification',
-      templateId: 'd-110786e4fc3e4ce2b216b16e4ae73efd',
-      dynamic_template_data: {
-        user: savedUser.name,
-        verification_link: verificationLink,
-      },
-    };
-    sgMail.send(msg);
+    await sendVerificationEmail(savedUser.email, token.token);
 
     res.created({
       data: {
