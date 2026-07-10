@@ -32,6 +32,6 @@ router.get('/:bugId/reactions', BugsController.getReactions);
 router.patch('/:bugId/reactions', BugsController.addOrRemoveReaction);
 router.get('/:bugId/reactions/:username', BugsController.getReactionsByUsers);
 router.get('/:bugId/timeline', BugsController.getTimeline);
-// router.delete('/:bugId/labels/:name', verify, BugsController.deleteLabel)
+router.delete('/:bugId/labels/:name', verify, BugsController.deleteLabel)
 
 export default router;
