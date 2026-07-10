@@ -14,15 +14,9 @@ const createTransporter = () => {
   });
 };
 
-/**
- * Send verification email
- * @param {string} email - Recipient email
- * @param {string} token - Verification token
- * @returns {Promise} - Nodemailer response
- */
 export const sendVerificationEmail = async (email, token) => {
   try {
-    const transporter = createTransporter();
+    const transporter = createTransporter(); // Create a transporter using the configuration
     const verificationUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/verify-email?token=${token}`;
 
     const mailOptions = {
@@ -41,21 +35,15 @@ export const sendVerificationEmail = async (email, token) => {
       `,
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Verification email sent:', info.messageId);
+    const info = await transporter.sendMail(mailOptions); // Send the email
+    console.log('Verification email sent:', info.messageId); // Log the message ID for reference
     return info;
   } catch (error) {
-    console.error('❌ Error sending verification email:', error);
+    console.error('Error sending verification email:', error);
     throw error;
   }
 };
 
-/**
- * Send password reset email
- * @param {string} email - Recipient email
- * @param {string} token - Reset token
- * @returns {Promise} - Nodemailer response
- */
 export const sendPasswordResetEmail = async (email, token) => {
   try {
     const transporter = createTransporter();
@@ -79,21 +67,14 @@ export const sendPasswordResetEmail = async (email, token) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Password reset email sent:', info.messageId);
+    console.log('Password reset email sent:', info.messageId);
     return info;
   } catch (error) {
-    console.error('❌ Error sending password reset email:', error);
+    console.error('Error sending password reset email:', error);
     throw error;
   }
 };
 
-/**
- * Send notification email
- * @param {string} email - Recipient email
- * @param {string} subject - Email subject
- * @param {string} message - Email message
- * @returns {Promise} - Nodemailer response
- */
 export const sendNotificationEmail = async (email, subject, message) => {
   try {
     const transporter = createTransporter();
@@ -112,10 +93,10 @@ export const sendNotificationEmail = async (email, subject, message) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Notification email sent:', info.messageId);
+    console.log('Notification email sent:', info.messageId);
     return info;
   } catch (error) {
-    console.error('❌ Error sending notification email:', error);
+    console.error('Error sending notification email:', error);
     throw error;
   }
 };

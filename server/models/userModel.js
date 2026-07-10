@@ -24,8 +24,9 @@ const UserInfoSchema = new mongoose.Schema(
   { _id: false }
 );
 
+// Transform output when converting to JSON
 UserInfoSchema.set('toJSON', {
-  versionKey: false, // remove __v
+  versionKey: false,
   transform: (_, ret) => {
     ret.id = ret._id;
     delete ret._id;

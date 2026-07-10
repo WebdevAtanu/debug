@@ -1,12 +1,13 @@
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config(); // Load environment variables from .env file
 
 export const config = {
   port: process.env.PORT || 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
   dbUri: process.env.DB_CONNECT_ATLAS,
   tokenSecret: process.env.TOKEN_SECRET,
+
   email: {
     host: process.env.EMAIL_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.EMAIL_PORT) || 587,
@@ -17,15 +18,18 @@ export const config = {
     },
     from: process.env.EMAIL_FROM || 'noreply@bughunter.com',
   },
+
   cors: {
     credentials: true,
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
   },
+
   rateLimit: {
     windowMs: 25 * 60 * 1000,
     max: 500,
     message: { error: 'Too many requests!, please try again after 25mins' },
   },
+
   bugRateLimit: {
     windowMs: 60 * 60 * 1000,
     max: 2,

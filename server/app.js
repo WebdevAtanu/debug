@@ -14,61 +14,36 @@ import httpResponder from './middleware/httpResponder.js';
 import errorHandler from './middleware/errorHandler.js';
 import { config } from './config/index.js';
 import { setupRoutes } from './routes/index.js';
-
-// Initialize Express app
-const app = express();
-
-// Express settings
-app.set('env', config.nodeEnv);
-app.set('json spaces', 2);
-
-// Security middleware
-app.use(helmet());
-
-// CORS
-app.use(cors(config.cors));
-
-// Custom HTTP responder middleware
-app.use(httpResponder);
-
-// Body parsing middleware
-app.use(cookieParser());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json({ limit: '10kb' }));
-
-// Security middleware
-app.use(mongoSanitize());
-app.use(xss());
-
-// Rate limiting
-app.use(
-  '/api/',
-  rateLimit(config.rateLimit)
-);
-
-// Logging
-app.use(morgan('dev'));
-
-// Compression
-app.use(compression());
-
-// Passport initialization
 import('./middleware/passport-auth.js');
-app.use(passport.initialize());
 
-// Setup routes
-setupRoutes(app);
 
-// Error handling
-app.use(errorHandler);
+const app = express(); // Initialize Express app
+app.use(helmet()); // Security middleware
+app.use(cors(config.cors)); // CORS middleware
+app.use(httpResponder); // Custom HTTP responder middleware
 
-// Handle 404 for API routes
-app.use('/api/*', (req, res) => {
-  res.notImplemented({ error: 'Not Implemented.' });
+app.use(cookieParser()); // Parse cookies
+app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+app.use(express.json({ limit: '10kb' })); // Limit request body size
+
+app.use(mongoSanitize()); // Sanitize data to prevent NoSQL injection
+app.use(xss()); // Sanitize data to prevent XSS attacks
+
+app.use('/api/', rateLimit(config.rateLimit)); // Apply rate limiting
+app.use(morgan('dev')); // Logging middleware
+app.use(compression()); // Compress responses
+app.use(passport.initialize()); // Initialize Passport for authentication
+
+setupRoutes(app); // Setup routes
+app.use(errorHandler); // Error handling middleware
+
+// Health check endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
+app.use('/api/*', (req, res) => { res.notImplemented({ error: 'Not implemented route' }); }); // Handle 404 for API routes
 
-// Serve static files in production
-app.use('/', expressStaticGzip('client/build'));
+app.use('/', expressStaticGzip('client/build')); // Serve static files from the React build directory
 
 if (config.nodeEnv === 'production') {
   app.get('/*', (req, res) => {

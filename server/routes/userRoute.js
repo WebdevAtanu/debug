@@ -11,9 +11,7 @@ const router = express.Router();
 
 // Passport middlewares
 const passportJWT = passport.authenticate('jwt', { session: false });
-const passportGoogle = passport.authenticate('google', {
-  session: false,
-});
+const passportGoogle = passport.authenticate('google', { session: false });
 
 // ================= AUTH =================
 
@@ -47,8 +45,6 @@ router.post('/logout', passportJWT, UserController.logout);
 
 // ================= USER RELATED =================
 
-// ⚠️ IMPORTANT: specific routes FIRST
-
 router.get(
   '/:username/comments',
   passportJWT,
@@ -68,8 +64,6 @@ router.get(
 );
 
 router.get('/:username/bugs', passportJWT, UserController.getBugsByUser);
-
-// ✅ KEEP THIS LAST (to avoid route conflict)
 router.get('/:username', passportJWT, UserController.getByUsername);
 
 export default router;

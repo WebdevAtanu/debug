@@ -1,7 +1,6 @@
 import Joi from 'joi';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-
 import {
   User,
   validateUser,
@@ -12,19 +11,12 @@ import { Token } from '../models/tokenModel.js';
 import { extractUsernameFromEmail } from '../utils/index.js';
 import { sendVerificationEmail } from '../utils/emailService.js';
 
-/**
- * @route POST /user/signup
- * @type RequestHandler
- */
+
 export const signup = async (req, res) => {
   const { error, value } = validateUser(req.body);
   if (error) {
     return res.unprocessable({ error: error.details[0].message });
   }
-
-  // save the user data into database
-  // create email verification token
-  // create verification link and send email
 
   try {
     const foundUser = await User.findOne({
@@ -84,10 +76,6 @@ export const signup = async (req, res) => {
   }
 };
 
-/**
- * @route POST /user/login
- * @type RequestHandler
- */
 export const login = async (req, res) => {
   const { error, value } = validateUserLogin(req.body);
   if (error) {
@@ -151,20 +139,12 @@ export const login = async (req, res) => {
   }
 };
 
-/**
- * @route POST /user/logout
- * @type RequestHandler
- */
 export const logout = (req, res) => {
   req.logout();
   // res.send(req.user)
   res.status(200).clearCookie('jwt').send({ message: 'logged out' });
 };
 
-/**
- * @route PATCH /user/me/bio
- * @type RequestHandler
- */
 export const updateBio = async (req, res) => {
   const { error, value } = Joi.object({
     bio: Joi.string().max(100).required(),
@@ -196,18 +176,10 @@ export const updateBio = async (req, res) => {
   }
 };
 
-/**
- * @route GET /user/check-status
- * @type RequestHandler
- */
 export const checkAuth = (req, res) => {
   res.ok({ data: req.user });
 };
 
-/**
- * @route POST /user/verify-email
- * @type RequestHandler
- */
 export const verifyEmail = async (req, res) => {
   try {
     // find token
@@ -246,10 +218,6 @@ export const verifyEmail = async (req, res) => {
   }
 };
 
-/**
- * @route GET /user/:username
- * @type RequestHandler
- */
 export const getByUsername = async (req, res) => {
   try {
     const user = await User.findOne({ username: req.params.username }).select(
@@ -269,10 +237,6 @@ export const getByUsername = async (req, res) => {
   }
 };
 
-/**
- * @route GET /user/:user_id
- * @type RequestHandler
- */
 export const getMultipleByIds = async (req, res) => {
   const { error, value } = Joi.object({
     user_ids: Joi.array().items(Joi.string()).required(),
@@ -299,10 +263,6 @@ export const getMultipleByIds = async (req, res) => {
   }
 };
 
-/**
- * @route GET /user/:page
- * @type RequestHandler
- */
 export const getAllUsers = async (req, res) => {
   const MAX_ITEMS = 10;
   const page = parseInt(req.query.page - 1);
@@ -326,10 +286,6 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-/**
- * @route GET /user/me
- * @type RequestHandler
- */
 export const getCurrent = async (req, res) => {
   try {
     const user = await User.findOne({ _id: req.user.id }).select('-password');
@@ -343,10 +299,6 @@ export const getCurrent = async (req, res) => {
   }
 };
 
-/**
- * @route GET /user/:username/comments
- * @type RequestHandler
- */
 export const getCommentsByUser = async (req, res) => {
   try {
     // https://stackoverflow.com/questions/16845191/mongoose-finding-subdocuments-by-criteria
@@ -379,10 +331,6 @@ export const getCommentsByUser = async (req, res) => {
   }
 };
 
-/**
- * @route GET /user/:username/reactions/count
- * @type RequestHandler
- */
 export const getCommentsCountByUser = async (req, res) => {
   try {
     // https://docs.mongodb.com/manual/reference/operator/aggregation/count/
@@ -405,10 +353,6 @@ export const getCommentsCountByUser = async (req, res) => {
   }
 };
 
-/**
- * @route GET /user/:username/reactions/count
- * @type RequestHandler
- */
 export const getCollectedReactionsCount = async (req, res) => {
   try {
     // https://docs.mongodb.com/manual/reference/operator/aggregation/count/
@@ -451,10 +395,6 @@ export const getCollectedReactionsCount = async (req, res) => {
   }
 };
 
-/**
- * @route GET /user/:username/bugs
- * @type RequestHandler
- */
 export const getBugsByUser = async (req, res) => {
   try {
     const bug = await Bug.find({ 'author.username': req.params.username });
