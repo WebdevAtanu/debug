@@ -1,24 +1,35 @@
-import mongoose from 'mongoose';
+import knex from 'knex';
 import { config } from './index.js';
 import pc from 'picocolors';
 
+const db = knex({
+  client: 'mysql2',
+  connection: {
+    host: config.db.host,
+    port: config.db.port,
+    user: config.db.user,
+    password: config.db.password,
+    database: config.db.database,
+  },
+});
+
 export const connectDatabase = async () => {
   try {
-    await mongoose.connect(config.dbUri); // Connect to MongoDB
-    console.log(pc.green('Connected to MongoDB database'));
+    await db.raw('SELECT 1'); // Test the connection by executing a simple query
+    console.log(pc.green('Connected to MySQL database'));
   } catch (error) {
     console.error(pc.red('Failed to connect to database:'), error.message);
-    process.exit(1); // Exit with an error code
+    process.exit(1);
   }
 };
 
 export const disconnectDatabase = async () => {
   try {
-    await mongoose.disconnect();
-    console.log(pc.yellow('Disconnected from MongoDB database'));
+    await db.destroy();
+    console.log(pc.yellow('Disconnected from MySQL database'));
   } catch (error) {
     console.error(pc.red('Error disconnecting from database:'), error.message);
   }
 };
 
-export default { connectDatabase, disconnectDatabase };
+export default db;

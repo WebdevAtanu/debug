@@ -10,6 +10,7 @@ import { Bug } from '../models/bugModel.js';
 import { Token } from '../models/tokenModel.js';
 import { extractUsernameFromEmail } from '../utils/index.js';
 import { sendVerificationEmail } from '../utils/emailService.js';
+import db from '../config/database.js';
 
 
 export const signup = async (req, res) => {
@@ -19,43 +20,37 @@ export const signup = async (req, res) => {
   }
 
   try {
-    const foundUser = await User.findOne({
-      email: value.email,
-    });
+    const foundUser = await User.findByEmail(value.email);
     if (foundUser)
       return res.conflict({ error: 'Username / Email Already Exists' });
 
-    if (!req.file) {
-      return res.unprocessable({ error: 'Please Select An Image' });
-    }
-
     // save the user data into database
     const usernameFromEmail = extractUsernameFromEmail(value.email);
-    const newUser = new User({
+    const avatarUrl = `http://${req.headers.host}/api/user/${usernameFromEmail}/avatar/raw`;
+    
+    const savedUser = await User.create({
       name: value.name,
-      provider: ['local'],
+      provider: value.provider,
       username: usernameFromEmail,
       email: value.email,
       password: value.password,
-      avatar: req.file.id,
-      avatarUrl: `http://${req.headers.host}/api/user/${usernameFromEmail}/avatar/raw`,
+      avatarUrl,
     });
-    const savedUser = await newUser.save();
 
     // create email verification token
-    const token = new Token({
-      _userId: savedUser._id,
-      token: crypto.randomBytes(16).toString('hex'),
+    const tokenString = crypto.randomBytes(16).toString('hex');
+    const savedToken = await Token.create({
+      token: tokenString,
+      user_id: savedUser.id,
     });
 
-    const savedToken = await token.save();
     if (!savedToken)
       return res.internalError({
         error: "Something wen't wrong while verifying email",
       });
     // create verification link and send email
-    const verificationLink = `http://${req.headers.host}/api/user/verify-email?token=${token.token}`;
-    await sendVerificationEmail(savedUser.email, token.token);
+    const verificationLink = `http://${req.headers.host}/api/user/verify-email?token=${tokenString}`;
+    await sendVerificationEmail(savedUser.email, tokenString);
 
     res.created({
       data: {
@@ -84,21 +79,22 @@ export const login = async (req, res) => {
 
   try {
     // check if user exist
-    const user = await User.findOne({ email: value.email });
+    const user = await User.findByEmail(value.email);
     if (!user) return res.notFound({ error: 'Email does not exists' });
 
     // make sure user is verified
     if (!user.isVerified) return res.forbidden({ error: 'Email not verified' });
 
     // user only signed up with google
-    if (!user.password || !user.provider.includes('local')) {
+    const provider = JSON.parse(user.provider || '[]');
+    if (!user.password || !provider.includes('local')) {
       return res.notFound({
         error: 'Unknown auth method, Try logging in with Google',
       });
     }
 
     // Check/Compares password
-    const validPassword = await user.isValidPassword(value.password);
+    const validPassword = await User.comparePassword(value.password, user.password);
     if (!validPassword)
       return res.forbidden({ error: 'Password is incorrect' });
 
@@ -108,7 +104,7 @@ export const login = async (req, res) => {
         sub: user.id,
         isVerified: user.isVerified,
         username: user.username,
-        provider: user.provider,
+        provider: provider,
         name: user.name,
         email: user.email,
         avatarUrl: user.avatarUrl,
@@ -125,7 +121,7 @@ export const login = async (req, res) => {
         data: {
           isVerified: user.isVerified,
           username: user.username,
-          provider: user.provider,
+          provider: provider,
           name: user.name,
           email: user.email,
           avatarUrl: user.avatarUrl,
@@ -155,15 +151,7 @@ export const updateBio = async (req, res) => {
   }
 
   try {
-    const user = await User.findOneAndUpdate(
-      {
-        _id: req.user.id,
-      },
-      {
-        bio: value.bio,
-      },
-      { new: true }
-    );
+    const user = await User.updateById(req.user.id, { bio: value.bio });
 
     if (!user) return res.notFound({ error: 'User not found' });
 
@@ -183,12 +171,12 @@ export const checkAuth = (req, res) => {
 export const verifyEmail = async (req, res) => {
   try {
     // find token
-    const token = await Token.findOne({ token: req.query.token });
+    const token = await Token.findByToken(req.query.token);
     if (!token)
       return res.notFound({ error: 'Unable to find verification token' });
 
     // find user with matching token
-    const user = await User.findOne({ _id: token._userId });
+    const user = await User.findById(token.user_id);
     if (!user)
       return res.notFound({
         error: 'Unable to find matching user & token for verification',
@@ -197,18 +185,10 @@ export const verifyEmail = async (req, res) => {
       return res.badRequest({ error: 'User is already verified' });
 
     // everything looks good! save user
-    user.isVerified = true;
-    // it will not expire anymore
-    user.expires = null;
-
-    const savedUser = await user.save();
+    const savedUser = await User.updateById(user.id, { isVerified: true });
     if (!savedUser)
       return res.internalError({ error: 'Error while verifying user' });
 
-    // res.ok({
-    //   data: savedUser,
-    //   message: 'Email address successfully verified.'
-    // })
     res.redirect('/');
   } catch (err) {
     console.log(err);
@@ -220,9 +200,7 @@ export const verifyEmail = async (req, res) => {
 
 export const getByUsername = async (req, res) => {
   try {
-    const user = await User.findOne({ username: req.params.username }).select(
-      '-password'
-    );
+    const user = await User.findByUsername(req.params.username);
     if (!user)
       return res.notFound({
         error: `User not found with the username ${req.params.username}`,
@@ -239,7 +217,7 @@ export const getByUsername = async (req, res) => {
 
 export const getMultipleByIds = async (req, res) => {
   const { error, value } = Joi.object({
-    user_ids: Joi.array().items(Joi.string()).required(),
+    user_ids: Joi.array().items(Joi.number()).required(),
   }).validate(req.body);
 
   if (error) {
@@ -247,14 +225,12 @@ export const getMultipleByIds = async (req, res) => {
   }
 
   try {
-    const user = await User.find({
-      _id: {
-        $in: [...value.user_ids],
-      },
-    }).select('username');
-    if (!user) return res.notFound({ error: 'Users not found' });
+    const users = await db('users')
+      .whereIn('id', value.user_ids)
+      .select('id', 'username');
+    if (!users || users.length === 0) return res.notFound({ error: 'Users not found' });
 
-    res.ok({ data: user });
+    res.ok({ data: users });
   } catch (err) {
     console.log(err);
     res.internalError({
@@ -265,13 +241,13 @@ export const getMultipleByIds = async (req, res) => {
 
 export const getAllUsers = async (req, res) => {
   const MAX_ITEMS = 10;
-  const page = parseInt(req.query.page - 1);
+  const page = parseInt(req.query.page) - 1 || 0;
   try {
-    const users = await User.find({})
-      .select('-password -email')
-      .sort('date_joined');
+    const users = await db('users')
+      .select('id', 'username', 'name', 'avatarUrl', 'bio')
+      .orderBy('created_at', 'desc');
 
-    if (!users) return res.notFound({ error: 'No users found!' });
+    if (!users || users.length === 0) return res.notFound({ error: 'No users found!' });
 
     res.ok({
       totalDocs: users.length,
@@ -288,7 +264,7 @@ export const getAllUsers = async (req, res) => {
 
 export const getCurrent = async (req, res) => {
   try {
-    const user = await User.findOne({ _id: req.user.id }).select('-password');
+    const user = await User.findById(req.user.id);
     if (!user) return res.notFound({ error: 'User Not Found!' });
 
     res.ok({ data: user });
@@ -301,28 +277,33 @@ export const getCurrent = async (req, res) => {
 
 export const getCommentsByUser = async (req, res) => {
   try {
-    // https://stackoverflow.com/questions/16845191/mongoose-finding-subdocuments-by-criteria
-    const bug = await Bug.aggregate([
-      { $match: { 'comments.author.username': req.params.username } },
-      { $unwind: '$comments' },
-      { $match: { 'comments.author.username': req.params.username } },
-      {
-        $project: {
-          body: '$comments.body',
-          date: '$comments.date',
-          author: {
-            id: '$comments.author._id',
-            username: '$comments.author.username',
-            name: '$comments.author.name',
-          },
-          id: '$_id',
-          _id: 0,
-        },
-      },
-    ]);
+    const comments = await db('comments')
+      .join('users as author', 'comments.author_id', 'author.id')
+      .join('bugs', 'comments.bug_id', 'bugs.id')
+      .select(
+        'comments.content as body',
+        'comments.created_at as date',
+        'author.id as author_id',
+        'author.username as author_username',
+        'author.name as author_name',
+        'bugs.id as bug_id'
+      )
+      .where('author.username', req.params.username)
+      .orderBy('comments.created_at', 'desc');
 
-    if (!bug) return res.notFound({ error: 'Bug Not Found!' });
-    res.ok({ data: bug });
+    const result = comments.map(comment => ({
+      body: comment.body,
+      date: comment.date,
+      author: {
+        id: comment.author_id,
+        username: comment.author_username,
+        name: comment.author_name,
+      },
+      id: comment.bug_id,
+    }));
+
+    if (!result || result.length === 0) return res.notFound({ error: 'Comments Not Found!' });
+    res.ok({ data: result });
   } catch (err) {
     console.log(err);
     res.internalError({
@@ -333,18 +314,14 @@ export const getCommentsByUser = async (req, res) => {
 
 export const getCommentsCountByUser = async (req, res) => {
   try {
-    // https://docs.mongodb.com/manual/reference/operator/aggregation/count/
-    const data = await Bug.aggregate([
-      { $match: { 'comments.author.username': req.params.username } },
-      { $unwind: '$comments' },
-      { $match: { 'comments.author.username': req.params.username } },
-      {
-        $count: 'counts',
-      },
-    ]);
+    const result = await db('comments')
+      .join('users as author', 'comments.author_id', 'author.id')
+      .where('author.username', req.params.username)
+      .count('* as count')
+      .first();
 
-    if (!data) return res.notFound({ error: 'Not Found!' });
-    res.ok({ data: data[0] || { count: '0' } });
+    if (!result) return res.notFound({ error: 'Not Found!' });
+    res.ok({ data: { count: result.count } });
   } catch (err) {
     console.log(err);
     res.internalError({
@@ -355,38 +332,29 @@ export const getCommentsCountByUser = async (req, res) => {
 
 export const getCollectedReactionsCount = async (req, res) => {
   try {
-    // https://docs.mongodb.com/manual/reference/operator/aggregation/count/
-    const data = await Bug.aggregate([
-      { $match: { 'comments.author.username': req.params.username } },
-      { $unwind: '$comments' },
-      { $match: { 'comments.author.username': req.params.username } },
-      { $project: { reactions: '$comments.reactions' } },
-      { $unwind: '$reactions' },
-      {
-        $group: {
-          _id: '$reactions.emoji',
-          reactions: { $push: '$reactions.users' },
-        },
-      },
-      // flatten multidimensional array
-      // https://stackoverflow.com/a/41634661/10629172
-      {
-        $project: {
-          emoji: '$_id',
-          _id: 0,
-          users: {
-            $map: {
-              input: '$reactions',
-              as: 'itemList',
-              in: { $arrayElemAt: ['$$itemList', 0] },
-            },
-          },
-        },
-      },
-    ]);
+    const comments = await db('comments')
+      .join('users as author', 'comments.author_id', 'author.id')
+      .where('author.username', req.params.username)
+      .select('comments.reactions');
 
-    if (!data) return res.notFound({ error: 'Not Found!' });
-    res.ok({ data: data });
+    const reactions = {};
+    comments.forEach(comment => {
+      const commentReactions = JSON.parse(comment.reactions || '{}');
+      Object.keys(commentReactions).forEach(emoji => {
+        if (!reactions[emoji]) {
+          reactions[emoji] = [];
+        }
+        reactions[emoji].push(...commentReactions[emoji]);
+      });
+    });
+
+    const result = Object.keys(reactions).map(emoji => ({
+      emoji,
+      users: reactions[emoji].map(r => r[0] || r),
+    }));
+
+    if (!result || result.length === 0) return res.notFound({ error: 'Not Found!' });
+    res.ok({ data: result });
   } catch (err) {
     console.log(err);
     res.internalError({
@@ -397,10 +365,10 @@ export const getCollectedReactionsCount = async (req, res) => {
 
 export const getBugsByUser = async (req, res) => {
   try {
-    const bug = await Bug.find({ 'author.username': req.params.username });
-    if (!bug) return res.notFound({ error: 'Bug Not Found!' });
+    const bugs = await Bug.findAll({ author_username: req.params.username });
+    if (!bugs || bugs.length === 0) return res.notFound({ error: 'Bug Not Found!' });
 
-    res.ok({ data: bug });
+    res.ok({ data: bugs });
   } catch (err) {
     console.log(err);
     res.internalError({

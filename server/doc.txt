@@ -1,0 +1,6 @@
+Knex Commands-
+
+`npx knex migrate:make create_users_table`- Create a new migration file
+`npx knex migrate:latest`- Run all pending migrations
+`npx knex migrate:rollback`- Undo the latest batch of migrations
+`npx knex migrate:status`- Show which migrations have run

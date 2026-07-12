@@ -1,41 +1,40 @@
-import mongoose from 'mongoose';
+import db from '../config/database.js';
 
-const TokenSchema = new mongoose.Schema(
-  {
-    user: {
-      type: mongoose.Schema.Types.ObjectId, // reference to User model
-      required: true,
-      ref: 'User', // populate with user details when needed
-      index: true, // index for faster lookups by user
-    },
-
-    token: {
-      type: String,
-      required: true,
-      unique: true, // prevent duplicate tokens
-    },
-
-    type: {
-      type: String,
-      enum: ['verify', 'reset', 'refresh'], // token types for different purposes
-      default: 'verify',
-    },
-  },
-  { timestamps: true }
-);
-
-// TTL Index (Auto delete expired tokens)
-TokenSchema.index(
-  { createdAt: 1 },
-  {
-    expireAfterSeconds: 60 * parseInt(process.env.EXPIRATION_TIME || 60),
+class Token {
+  static async findById(id) {
+    return await db('tokens').where({ id }).first();
   }
-);
 
-// auto remove old tokens for same user/type
-TokenSchema.index({ user: 1, type: 1 });
+  static async findByToken(token) {
+    return await db('tokens').where({ token }).first();
+  }
 
-// create the model
-const Token = mongoose.model('Token', TokenSchema);
+  static async findByUserId(userId) {
+    return await db('tokens').where({ user_id: userId }).first();
+  }
+
+  static async create(tokenData) {
+    const { token, user_id } = tokenData;
+    
+    const [newToken] = await db('tokens').insert({
+      token,
+      user_id,
+    }).returning('*');
+    
+    return newToken;
+  }
+
+  static async deleteById(id) {
+    return await db('tokens').where({ id }).del();
+  }
+
+  static async deleteByToken(token) {
+    return await db('tokens').where({ token }).del();
+  }
+
+  static async deleteByUserId(userId) {
+    return await db('tokens').where({ user_id: userId }).del();
+  }
+}
 
 export { Token };

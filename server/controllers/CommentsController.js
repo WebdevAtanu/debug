@@ -1,6 +1,5 @@
-/// <reference path="./mytypes.d.ts" />
 import { Bug } from '../models/bugModel.js';
-import { validateComment } from '../models/commentModel.js';
+import { Comment, validateComment } from '../models/commentModel.js';
 import { Notification } from '../models/notificationModel.js';
 import { NOTIFY_TYPES } from '../constants.js';
 import Joi from 'joi';
@@ -12,11 +11,12 @@ import Joi from 'joi';
  */
 export const getComments = async (req, res) => {
   try {
-    const bug = await Bug.findOne({ bugId: req.params.bugId });
+    const bug = await Bug.findByNumber(req.params.bugId);
     if (!bug)
       return res.notFound({ error: `Bug#${req.params.bugId} Not Found` });
 
-    res.ok({ data: bug.comments });
+    const comments = await Comment.findByBugId(bug.id);
+    res.ok({ data: comments });
   } catch (err) {
     console.log(err);
     res.internalError({
@@ -36,33 +36,24 @@ export const createComment = async (req, res) => {
   if (error) return res.unprocessable({ error: error.details[0].message });
 
   try {
-    const bug = await Bug.findOne({ bugId: req.params.bugId });
+    const bug = await Bug.findByNumber(req.params.bugId);
     if (!bug)
       return res.notFound({ error: `Bug#${req.params.bugId} Not Found` });
 
-    const authorDetails = {
-      username: req.user.username,
-      name: req.user.name,
-      _id: req.user.id,
-    };
-
-    bug.comments.push({
-      body: value.body,
-      author: authorDetails,
+    const newComment = await Comment.create({
+      content: value.body,
+      bug_id: bug.id,
+      author_id: req.user.id,
     });
-
-    const newBug = await bug.save();
 
     // send notifications
-    const notification = new Notification({
-      type: NOTIFY_TYPES.COMMENTED,
-      byUser: req.user.id,
-      onBug: newBug._id,
-      notificationTo: [],
+    await Notification.create({
+      message: `New comment on bug: ${bug.title}`,
+      user_id: req.user.id,
+      bug_id: bug.id,
     });
-    await notification.save();
 
-    res.ok({ data: newBug.comments[newBug.comments.length - 1] });
+    res.ok({ data: newComment });
   } catch (err) {
     res.internalError({
       error: 'Something went wrong while adding new comment',
@@ -77,22 +68,18 @@ export const createComment = async (req, res) => {
  */
 export const deleteComment = async (req, res) => {
   try {
-    const bug = await Bug.findOneAndUpdate(
-      { bugId: req.params.bugId },
-      {
-        $pull: {
-          comments: {
-            _id: req.params.comment_id,
-            'author._id': req.user.id,
-          },
-        },
-      },
-      { new: true, select: 'comments' }
-    );
-    if (!bug)
-      return res.notFound({ error: `Bug#${req.params.bugId} Not Found` });
+    const comment = await Comment.findById(req.params.comment_id);
+    if (!comment)
+      return res.notFound({ error: `Comment #${req.params.comment_id} Not Found` });
 
-    res.ok({ data: bug.comments });
+    if (comment.author_id !== req.user.id)
+      return res.forbidden({ error: 'Not authorized to delete this comment' });
+
+    await Comment.deleteById(req.params.comment_id);
+
+    const bug = await Bug.findByNumber(req.params.bugId);
+    const comments = await Comment.findByBugId(bug.id);
+    res.ok({ data: comments });
   } catch (err) {
     res.internalError({
       error: `Something went wrong while deleting comment #${req.params.comment_id}`,
@@ -110,30 +97,18 @@ export const updateComment = async (req, res) => {
   if (error) return res.unprocessable({ error: error.details[0].message });
 
   try {
-    const bug = await Bug.findOneAndUpdate(
-      {
-        bugId: req.params.bugId,
-        comments: {
-          $elemMatch: {
-            _id: req.params.comment_id,
-            'author._id': req.user.id,
-          },
-        },
-      },
-      {
-        $set: {
-          'comments.$.body': value.body,
-        },
-      },
-      { new: true, runValidators: true }
-    );
+    const comment = await Comment.findById(req.params.comment_id);
+    if (!comment)
+      return res.notFound({ error: `Comment #${req.params.comment_id} Not Found` });
 
-    if (!bug)
-      return res.notFound({ error: `Bug#${req.params.bugId} Not Found` });
+    if (comment.author_id !== req.user.id)
+      return res.forbidden({ error: 'Not authorized to update this comment' });
 
-    res.ok({
-      data: bug.comments.filter(e => e.id === req.params.comment_id)[0],
+    const updatedComment = await Comment.updateById(req.params.comment_id, {
+      content: value.body,
     });
+
+    res.ok({ data: updatedComment });
   } catch (err) {
     console.log(err);
     res.internalError({
@@ -157,60 +132,27 @@ export const addOrRemoveReaction = async (req, res) => {
   }
 
   try {
-    // preventing _id in LabelSchema fixes the issue to `$addToSet` not working
-    const bug = await Bug.findOne({
-      bugId: req.params.bugId,
-      'comments._id': req.params.comment_id,
-    });
-    if (!bug)
-      return res.notFound({ error: `Bug#${req.params.bugId} Not Found` });
+    const comment = await Comment.findById(req.params.comment_id);
+    if (!comment)
+      return res.notFound({ error: `Comment #${req.params.comment_id} Not Found` });
 
-    // TODO: fix perf issues
-    const userId = req.user.id.toString();
-    const comments = bug.comments;
-    const commentIndex = parseInt(
-      comments.findIndex(c => c.id === req.params.comment_id)
-    );
-    const comment = comments[parseInt(commentIndex)];
+    const reactions = { ...comment.reactions };
+    const userId = req.user.id;
 
-    // find the index of matching user & emoji pair
-    const index = comment.reactions.findIndex(reaction => {
-      const isSameReaction = reaction.emoji === value.emoji;
-      const isSameId = reaction.users.includes(userId);
-      return isSameId && isSameReaction;
-    });
-
-    if (index > -1) {
-      // findIndex of user to remove it from the users list
-      const indexedComment = comment.reactions[parseInt(index)];
-      const indexOfUser = indexedComment.users.indexOf(userId);
-      indexedComment.users.splice(indexOfUser, 1);
-      // if users list is empty then remove the entire reaction
-      if (indexedComment.users.length < 1) {
-        comment.reactions.splice(index, 1);
+    if (reactions[value.emoji] && reactions[value.emoji].includes(userId)) {
+      reactions[value.emoji] = reactions[value.emoji].filter(id => id !== userId);
+      if (reactions[value.emoji].length === 0) {
+        delete reactions[value.emoji];
       }
     } else {
-      const emojiIndex = comment.reactions.findIndex(
-        r => r.emoji === value.emoji
-      );
-      // if emoji is absent then push it to the reactions list
-      // else push the userId to the users list
-      emojiIndex === -1
-        ? comment.reactions.push({ emoji: value.emoji, users: [req.user.id] })
-        : comment.reactions[parseInt(emojiIndex)].users.push(req.user.id);
+      if (!reactions[value.emoji]) {
+        reactions[value.emoji] = [];
+      }
+      reactions[value.emoji].push(userId);
     }
 
-    const newBug = await bug
-      .save()
-      .then(t =>
-        t.populate('comments.reactions.users', 'name username').execPopulate()
-      );
-    if (!newBug)
-      return res.notFound({ error: `Bug#${req.params.bugId} Not Found` });
-
-    res.ok({
-      data: newBug.comments.filter(e => e.id === req.params.comment_id)[0],
-    });
+    const updatedComment = await Comment.updateById(req.params.comment_id, { reactions });
+    res.ok({ data: updatedComment });
   } catch (err) {
     console.log(err);
     res.internalError({
@@ -226,22 +168,15 @@ export const addOrRemoveReaction = async (req, res) => {
  */
 export const getReactions = async (req, res) => {
   try {
-    // https://stackoverflow.com/a/41354060/10629172
-    const bug = await Bug.findOne(
-      {
-        bugId: req.params.bugId,
-        'comments._id': req.params.comment_id,
-      },
-      { 'comments.$': 1 }
-    )
-      .select('comments.reactions')
-      .populate('comments.reactions.users', 'name username');
+    const comment = await Comment.findById(req.params.comment_id);
+    if (!comment)
+      return res.notFound({ error: `Comment #${req.params.comment_id} Not Found` });
 
-    res.ok({ data: bug });
+    res.ok({ data: comment.reactions });
   } catch (err) {
     console.log(err);
     res.internalError({
-      error: 'Something went wrong while adding new reaction',
+      error: 'Something went wrong while getting reactions',
     });
   }
 };

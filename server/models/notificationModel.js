@@ -1,81 +1,53 @@
-import mongoose from 'mongoose';
+import db from '../config/database.js';
 
-const NotificationSchema = new mongoose.Schema(
-  {
-    type: {
-      type: String,
-      enum: ['MENTIONED', 'COMMENTED', 'BUG_STATUS', 'NEW_BUG', 'REFERENCED'],
-      required: true,
-    },
+class Notification {
+  static async findById(id) {
+    return await db('notifications').where({ id }).first();
+  }
 
-    byUser: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-      index: true,
-    },
+  static async findByUserId(userId) {
+    return await db('notifications')
+      .where({ user_id: userId })
+      .orderBy('created_at', 'desc');
+  }
 
-    // Bug references
-    fromBug: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Bug',
-    },
+  static async findByBugId(bugId) {
+    return await db('notifications')
+      .where({ bug_id: bugId })
+      .orderBy('created_at', 'desc');
+  }
 
-    onBug: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Bug',
-    },
+  static async create(notificationData) {
+    const { message, user_id, bug_id } = notificationData;
+    
+    const [notification] = await db('notifications').insert({
+      message,
+      read: false,
+      user_id,
+      bug_id,
+    }).returning('*');
+    
+    return notification;
+  }
 
-    bugStatus: {
-      type: String,
-      enum: ['opened', 'closed'],
-    },
+  static async markAsRead(id) {
+    const [notification] = await db('notifications')
+      .where({ id })
+      .update({ read: true })
+      .returning('*');
+    
+    return notification;
+  }
 
-    references: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Bug',
-        default: [],
-      },
-    ],
+  static async markAllAsRead(userId) {
+    return await db('notifications')
+      .where({ user_id: userId })
+      .update({ read: true });
+  }
 
-    mentions: {
-      type: [String], // or ObjectId if linking users
-      default: [],
-    },
-
-    notificationTo: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true,
-      },
-    ],
-
-    // IMPORTANT FIELD
-    isRead: {
-      type: Boolean,
-      default: false,
-      index: true,
-    },
-  },
-  { timestamps: true }
-);
-
-// Transform _id to id and remove __v for cleaner API responses
-NotificationSchema.set('toJSON', {
-  versionKey: false,
-  transform: (_, ret) => {
-    ret.id = ret._id;
-    delete ret._id;
-  },
-});
-
-// Indexes for efficient querying of notifications by recipient and read status
-NotificationSchema.index({ notificationTo: 1 });
-NotificationSchema.index({ createdAt: -1 });
-
-// create the model
-const Notification = mongoose.model('Notification', NotificationSchema);
+  static async deleteById(id) {
+    return await db('notifications').where({ id }).del();
+  }
+}
 
 export { Notification };

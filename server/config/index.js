@@ -5,7 +5,15 @@ dotenv.config(); // Load environment variables from .env file
 export const config = {
   port: process.env.PORT || 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
-  dbUri: process.env.DB_CONNECT_ATLAS,
+
+  db: {
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT) || 3306,
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'bug_hunter',
+  },
+
   tokenSecret: process.env.TOKEN_SECRET,
 
   email: {
@@ -27,13 +35,13 @@ export const config = {
   rateLimit: {
     windowMs: 25 * 60 * 1000,
     max: 500,
-    message: { error: 'Too many requests!, please try again after 25mins' },
+    message: { error: 'Too many requests. Please try again in 25 minutes.' },
   },
 
   bugRateLimit: {
     windowMs: 60 * 60 * 1000,
     max: 2,
-    message: { error: "Hey stop that. don't try to break it." },
+    message: { error: "Easy there! You can submit up to 2 bug reports per hour. Please try again later." },
   },
 };
 

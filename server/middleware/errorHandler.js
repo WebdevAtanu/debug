@@ -1,26 +1,40 @@
 import multer from 'multer';
 
-export default function (err, req, res, next) {
-  console.error(err);
-  if (err instanceof SyntaxError) {
-    res.internalError({ error: "Something isn't right" });
-  } else if (err instanceof multer.MulterError) {
-    // fileUpload
-    console.log(err.field);
+export default function errorHandler(err, req, res, next) {
+  if (process.env.NODE_ENV !== 'production') {
+    console.error(err);
+  }
+
+  // Invalid JSON body
+  if (
+    err instanceof SyntaxError &&
+    err.status === 400 &&
+    'body' in err
+  ) {
+    return res.badRequest({
+      error: 'Invalid JSON format.',
+    });
+  }
+
+  // Multer errors
+  if (err instanceof multer.MulterError) {
     switch (err.code) {
       case 'LIMIT_FILE_SIZE':
-        res.payloadTooLarge({ error: 'File size is too large' });
-        break;
+        return res.payloadTooLarge({
+          error: 'File size exceeds the allowed limit.',
+        });
+
       case 'LIMIT_UNEXPECTED_FILE':
-        res.unsupportedMedia({
-          error: 'Invalid File format. must be PNG,JPG,JPEG',
+        return res.unsupportedMedia({
+          error: 'Only PNG, JPG, and JPEG files are allowed.',
         });
-        break;
+
       default:
-        res.internalError({
-          error: 'Something went wrong while uploading file',
+        return res.badRequest({
+          error: 'File upload failed.',
         });
-        break;
     }
-  } else next();
-};
+  }
+
+  next(err);
+}

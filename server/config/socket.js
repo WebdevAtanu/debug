@@ -1,7 +1,8 @@
-import { Server } from 'socket.io';
+import { Server } from 'socket.io'; // Import the Server class from the socket.io package
 
 let io; // Socket.io instance
 
+// Initialize Socket.io with the provided HTTP server
 export const initializeSocket = (server) => {
   io = new Server(server); // Initialize Socket.io with the provided server
 
@@ -23,6 +24,7 @@ export const initializeSocket = (server) => {
   return io;
 };
 
+// Get the Socket.io instance
 export const getSocketInstance = () => {
   if (!io) {
     throw new Error('Socket.io not initialized. Call initializeSocket first.');
