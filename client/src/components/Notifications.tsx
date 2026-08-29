@@ -6,6 +6,7 @@ import type { Notification } from '../services/notificationsService';
 const Notifications: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchNotifications();
@@ -17,10 +18,13 @@ const Notifications: React.FC = () => {
 
   const fetchNotifications = async () => {
     try {
+      setLoading(true);
+      setError('');
       const response = await notificationsService.getNotifications();
-      setNotifications(response.data?.notifications || response.data || []);
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+      setNotifications(response.data || []);
+    } catch (err: any) {
+      setError(err.userMessage || 'Failed to fetch notifications');
+      console.error('Failed to fetch notifications:', err);
     } finally {
       setLoading(false);
     }
@@ -44,6 +48,12 @@ const Notifications: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Notifications</h1>
         
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+            {error}
+          </div>
+        )}
+        
         {notifications.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
             <p className="text-gray-500">No notifications</p>
@@ -52,7 +62,7 @@ const Notifications: React.FC = () => {
           <div className="space-y-4">
             {notifications.map((notification) => (
               <div
-                key={notification._id}
+                key={notification.id}
                 className={`bg-white rounded-lg shadow p-6 border-l-4 ${
                   notification.read ? 'border-gray-300' : 'border-indigo-600'
                 }`}
@@ -61,7 +71,7 @@ const Notifications: React.FC = () => {
                   <div className="flex-1">
                     <p className="text-gray-900 font-medium">{notification.message}</p>
                     <span className="text-sm text-gray-500 mt-2 block">
-                      {new Date(notification.createdAt).toLocaleString()}
+                      {new Date(notification.created_at).toLocaleString()}
                     </span>
                   </div>
                   {!notification.read && (

@@ -74,7 +74,7 @@ class User {
 const validateUser = (user) => {
   const schema = Joi.object({
     name: Joi.string().min(6).max(100).required(),
-    username: Joi.string().min(2).max(100).required(),
+    username: Joi.string().min(2).max(100).optional(),
     email: Joi.string().email().required(),
     password: Joi.string().min(6).max(100).when('provider', {
       is: 'local',

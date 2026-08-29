@@ -1,19 +1,21 @@
 import api from './api';
 
 export interface Bug {
-  _id: string;
+  id: number;
   number: number;
   title: string;
   description: string;
   status: 'open' | 'closed';
   labels: string[];
+  reactions: { [key: string]: number[] };
   author: {
-    _id: string;
+    id: number;
     username: string;
+    name: string;
+    avatarUrl?: string;
   };
-  createdAt: string;
-  updatedAt: string;
-  references?: string[];
+  created_at: string;
+  updated_at: string;
 }
 
 export const bugsService = {
@@ -32,7 +34,7 @@ export const bugsService = {
     return response.data;
   },
 
-  updateBug: async (bugId: string, bugData: Partial<Bug>) => {
+  updateBug: async (bugId: string, bugData: { title?: string; description?: string }) => {
     const response = await api.patch(`/bugs/${bugId}`, bugData);
     return response.data;
   },
@@ -52,6 +54,11 @@ export const bugsService = {
     return response.data;
   },
 
+  deleteLabel: async (bugId: string, labelName: string) => {
+    const response = await api.delete(`/bugs/${bugId}/labels/${labelName}`);
+    return response.data;
+  },
+
   addReferences: async (bugId: string, references: string[]) => {
     const response = await api.patch(`/bugs/${bugId}/references`, { references });
     return response.data;
@@ -62,8 +69,8 @@ export const bugsService = {
     return response.data;
   },
 
-  addOrRemoveReaction: async (bugId: string, reaction: string) => {
-    const response = await api.patch(`/bugs/${bugId}/reactions`, { reaction });
+  addOrRemoveReaction: async (bugId: string, emoji: string) => {
+    const response = await api.patch(`/bugs/${bugId}/reactions`, { emoji });
     return response.data;
   },
 

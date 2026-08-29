@@ -5,7 +5,6 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
-import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
 import compression from 'compression';
 import expressStaticGzip from 'express-static-gzip';
@@ -26,7 +25,6 @@ app.use(cookieParser()); // Parse cookies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 app.use(express.json({ limit: '10kb' })); // Limit request body size
 
-app.use(mongoSanitize()); // Sanitize data to prevent NoSQL injection
 app.use(xss()); // Sanitize data to prevent XSS attacks
 
 app.use('/api/', rateLimit(config.rateLimit)); // Apply rate limiting

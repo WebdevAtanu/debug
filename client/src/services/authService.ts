@@ -6,27 +6,30 @@ export interface LoginCredentials {
 }
 
 export interface SignupCredentials {
-  username: string;
+  name: string;
   email: string;
   password: string;
 }
 
 export interface User {
-  _id: string;
+  id: number;
   username: string;
   email: string;
+  name: string;
   bio?: string;
-  avatar?: string;
+  avatarUrl?: string;
+  isVerified: boolean;
+  provider?: string[];
 }
 
 export const authService = {
   login: async (credentials: LoginCredentials) => {
-    const response = await api.post('/api/user/login', credentials);
+    const response = await api.post('/user/login', credentials);
     return response.data;
   },
 
   signup: async (credentials: SignupCredentials) => {
-    const response = await api.post('/api/user/signup', credentials);
+    const response = await api.post('/user/signup', credentials);
     return response.data;
   },
 

@@ -60,7 +60,8 @@ export const signup = async (req, res) => {
         email: savedUser.email,
         username: savedUser.username,
         name: savedUser.name,
-        message: 'User Registered',
+        bio: savedUser.bio,
+        provider: savedUser.provider,
       },
     });
   } catch (err) {
@@ -126,6 +127,7 @@ export const login = async (req, res) => {
           email: user.email,
           avatarUrl: user.avatarUrl,
           id: user.id,
+          bio: user.bio,
         },
       });
   } catch (err) {
@@ -267,7 +269,13 @@ export const getCurrent = async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) return res.notFound({ error: 'User Not Found!' });
 
-    res.ok({ data: user });
+    const provider = JSON.parse(user.provider || '[]');
+    res.ok({ 
+      data: {
+        ...user,
+        provider,
+      }
+    });
   } catch (err) {
     res.internalError({
       error: 'Something went wrong',

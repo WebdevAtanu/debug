@@ -6,14 +6,12 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js",
-    "test": "jest"
+    "dev": "node --watch server.js"
   },
   "keywords": [
     "bug",
     "tracker",
-    "express",
-    "mongoose"
+    "express"
   ],
   "author": "",
   "license": "ISC",

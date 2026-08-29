@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const Signup: React.FC = () => {
-  const [username, setUsername] = useState('');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -16,6 +16,22 @@ const Signup: React.FC = () => {
     e.preventDefault();
     setError('');
 
+    // Client-side validation
+    if (name.length < 6) {
+      setError('Name must be at least 6 characters');
+      return;
+    }
+
+    if (!email.includes('@') || !email.includes('.')) {
+      setError('Please enter a valid email');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -24,7 +40,7 @@ const Signup: React.FC = () => {
     setLoading(true);
 
     try {
-      await signup(username, email, password);
+      await signup(name, email, password);
       navigate('/');
     } catch (err: any) {
       setError(err.userMessage || err.response?.data?.error || 'Signup failed');
@@ -38,7 +54,7 @@ const Signup: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-gray-800">Create Account</h2>
@@ -53,17 +69,18 @@ const Signup: React.FC = () => {
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-              Username
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+              Name <span className="text-gray-400">(min 6 characters)</span>
             </label>
             <input
               type="text"
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               required
+              minLength={6}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
-              placeholder="johndoe"
+              placeholder="John Doe"
             />
           </div>
           
@@ -84,7 +101,7 @@ const Signup: React.FC = () => {
           
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password
+              Password <span className="text-gray-400">(min 6 characters)</span>
             </label>
             <input
               type="password"
@@ -92,6 +109,7 @@ const Signup: React.FC = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              minLength={6}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
               placeholder="••••••••"
             />

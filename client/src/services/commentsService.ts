@@ -1,15 +1,18 @@
 import api from './api';
 
 export interface Comment {
-  _id: string;
+  id: number;
   author: {
-    _id: string;
+    id: number;
     username: string;
+    name: string;
+    avatarUrl?: string;
   };
   content: string;
-  createdAt: string;
-  updatedAt: string;
-  reactions?: { [key: string]: string[] };
+  created_at: string;
+  updated_at: string;
+  reactions?: { [key: string]: number[] };
+  bug_id: number;
 }
 
 export const commentsService = {
@@ -38,8 +41,8 @@ export const commentsService = {
     return response.data;
   },
 
-  addOrRemoveReaction: async (bugId: string, commentId: string, reaction: string) => {
-    const response = await api.patch(`/bugs/${bugId}/comments/${commentId}/reactions`, { reaction });
+  addOrRemoveReaction: async (bugId: string, commentId: string, emoji: string) => {
+    const response = await api.patch(`/bugs/${bugId}/comments/${commentId}/reactions`, { emoji });
     return response.data;
   },
 };

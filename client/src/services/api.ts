@@ -10,26 +10,13 @@ const api = axios.create({
   },
 });
 
-// Request interceptor - add JWT token to headers
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+console.log('API Base URL:', API_BASE_URL);
 
-// Response interceptor - handle token refresh and errors
+// Response interceptor - handle errors and extract messages
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
+    if (error.response?.status === 401 && window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
       window.location.href = '/login';
     }
     

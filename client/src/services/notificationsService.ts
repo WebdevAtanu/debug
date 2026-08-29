@@ -1,23 +1,22 @@
 import api from './api';
 
 export interface Notification {
-  _id: string;
-  recipient: string;
-  type: string;
+  id: number;
+  user_id: number;
+  bug_id?: number;
   message: string;
-  bugId?: string;
   read: boolean;
-  createdAt: string;
+  created_at: string;
 }
 
 export const notificationsService = {
-  getNotifications: async () => {
-    const response = await api.get('/notifications');
+  getNotifications: async (params?: { page?: number }) => {
+    const response = await api.get('/notifications', { params });
     return response.data;
   },
 
-  mentionPeople: async (bugId: string, usernames: string[]) => {
-    const response = await api.post(`/notifications/mentions/${bugId}`, { usernames });
+  mentionPeople: async (bugId: string, mentions: string[]) => {
+    const response = await api.post(`/notifications/mentions/${bugId}`, { mentions });
     return response.data;
   },
 };

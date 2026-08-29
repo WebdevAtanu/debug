@@ -11,7 +11,9 @@ const BugDetail: React.FC = () => {
   const [bug, setBug] = useState<Bug | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [commentText, setCommentText] = useState('');
+  const [commentError, setCommentError] = useState('');
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -24,10 +26,13 @@ const BugDetail: React.FC = () => {
 
   const fetchBug = async () => {
     try {
+      setLoading(true);
+      setError('');
       const response = await bugsService.getBugByNumber(bugId!);
-      setBug(response.data?.bug || response.data);
-    } catch (error) {
-      console.error('Failed to fetch bug:', error);
+      setBug(response.data);
+    } catch (err: any) {
+      setError(err.userMessage || 'Failed to fetch bug');
+      console.error('Failed to fetch bug:', err);
     } finally {
       setLoading(false);
     }
@@ -36,9 +41,9 @@ const BugDetail: React.FC = () => {
   const fetchComments = async () => {
     try {
       const response = await commentsService.getComments(bugId!);
-      setComments(response.data?.comments || response.data || []);
-    } catch (error) {
-      console.error('Failed to fetch comments:', error);
+      setComments(response.data || []);
+    } catch (err: any) {
+      console.error('Failed to fetch comments:', err);
     }
   };
 
@@ -46,26 +51,36 @@ const BugDetail: React.FC = () => {
     e.preventDefault();
     if (!commentText.trim() || !user) return;
 
+    // Client-side validation
+    if (commentText.trim().length < 6) {
+      setCommentError('Comment must be at least 6 characters');
+      return;
+    }
+
     try {
+      setCommentError('');
       await commentsService.createComment(bugId!, commentText);
       setCommentText('');
       fetchComments();
-    } catch (error) {
-      console.error('Failed to create comment:', error);
+    } catch (err: any) {
+      setCommentError(err.userMessage || 'Failed to create comment');
+      console.error('Failed to create comment:', err);
     }
   };
 
   const handleToggleStatus = async () => {
     if (!bug) return;
     try {
+      setError('');
       if (bug.status === 'open') {
         await bugsService.closeBug(bugId!);
       } else {
         await bugsService.openBug(bugId!);
       }
       fetchBug();
-    } catch (error) {
-      console.error('Failed to toggle bug status:', error);
+    } catch (err: any) {
+      setError(err.userMessage || 'Failed to toggle bug status');
+      console.error('Failed to toggle bug status:', err);
     }
   };
 
@@ -81,6 +96,12 @@ const BugDetail: React.FC = () => {
         >
           ← Back to Bugs
         </button>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+            {error}
+          </div>
+        )}
 
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <div className="flex items-start justify-between mb-4">
@@ -101,7 +122,7 @@ const BugDetail: React.FC = () => {
           <div className="flex items-center gap-4 text-sm text-gray-600 mb-6">
             <span>by {bug.author.username}</span>
             <span>•</span>
-            <span>{new Date(bug.createdAt).toLocaleDateString()}</span>
+            <span>{new Date(bug.created_at).toLocaleDateString()}</span>
           </div>
 
           <div className="prose max-w-none mb-6">
@@ -140,13 +161,23 @@ const BugDetail: React.FC = () => {
 
           {user && (
             <form onSubmit={handleCommentSubmit} className="mb-6">
+              {commentError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+                  {commentError}
+                </div>
+              )}
               <textarea
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 placeholder="Add a comment..."
                 rows={4}
+                minLength={6}
+                maxLength={1000}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition resize-none"
               />
+              <div className="text-sm text-gray-500 mt-1">
+                {commentText.length}/1000 characters (min 6)
+              </div>
               <button
                 type="submit"
                 disabled={!commentText.trim()}
@@ -160,7 +191,7 @@ const BugDetail: React.FC = () => {
           <div className="space-y-4">
             {comments.map((comment) => (
               <div
-                key={comment._id}
+                key={comment.id}
                 className="border-b border-gray-200 pb-4 last:border-0"
               >
                 <div className="flex items-center justify-between mb-2">
@@ -168,7 +199,7 @@ const BugDetail: React.FC = () => {
                     {comment.author.username}
                   </span>
                   <span className="text-sm text-gray-500">
-                    {new Date(comment.createdAt).toLocaleDateString()}
+                    {new Date(comment.created_at).toLocaleDateString()}
                   </span>
                 </div>
                 <p className="text-gray-700 whitespace-pre-wrap">{comment.content}</p>

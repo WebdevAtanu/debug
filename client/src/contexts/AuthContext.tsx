@@ -8,7 +8,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (username: string, email: string, password: string) => Promise<void>;
+  signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   googleLogin: () => void;
   isAuthenticated: boolean;
@@ -19,22 +19,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasChecked, setHasChecked] = useState(false);
 
   useEffect(() => {
-    checkAuthStatus();
-  }, []);
+    if (!hasChecked) {
+      checkAuthStatus();
+      setHasChecked(true);
+    }
+  }, [hasChecked]);
 
   const checkAuthStatus = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (token) {
-        const userData = await authService.getCurrentUser();
-        setUser(userData.data?.user || userData.data);
-        socketService.connect();
-      }
+      const userData = await authService.getCurrentUser();
+      setUser(userData.data);
+      socketService.connect();
     } catch (error) {
       console.error('Auth check failed:', error);
-      localStorage.removeItem('token');
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -43,32 +44,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string) => {
     try {
       const response = await authService.login({ email, password });
-      if (response.data?.token) {
-        localStorage.setItem('token', response.data.token);
-        setUser(response.data.user);
-        socketService.connect();
-      }
+      setUser(response.data);
+      socketService.connect();
     } catch (error) {
       console.error('Login error:', error);
-    }
-    finally {
-      setLoading(false);
+      throw error;
     }
   };
 
-  const signup = async (username: string, email: string, password: string) => {
+  const signup = async (name: string, email: string, password: string) => {
     try {
-      const response = await authService.signup({ username, email, password });
-      if (response.data?.token) {
-        localStorage.setItem('token', response.data.token);
-        setUser(response.data.user);
-        socketService.connect();
-      }
+      const response = await authService.signup({ name, email, password });
+      setUser(response.data);
+      socketService.connect();
     } catch (error) {
       console.error('Signup error:', error);
-    }
-    finally {
-      setLoading(false);
+      throw error;
     }
   };
 
@@ -78,7 +69,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      localStorage.removeItem('token');
       setUser(null);
       socketService.disconnect();
     }

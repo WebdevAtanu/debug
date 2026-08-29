@@ -31,7 +31,14 @@ export const getComments = async (req, res) => {
  * @type RequestHandler
  */
 export const createComment = async (req, res) => {
-  const { error, value } = validateComment(req.body);
+  const commentContent = req.body.content || req.body.body;
+  
+  // Validate the content
+  const schema = Joi.object({
+    content: Joi.string().min(6).max(1000).required(),
+  });
+  
+  const { error, value } = schema.validate({ content: commentContent });
 
   if (error) return res.unprocessable({ error: error.details[0].message });
 
@@ -41,7 +48,7 @@ export const createComment = async (req, res) => {
       return res.notFound({ error: `Bug#${req.params.bugId} Not Found` });
 
     const newComment = await Comment.create({
-      content: value.body,
+      content: value.content,
       bug_id: bug.id,
       author_id: req.user.id,
     });
@@ -93,7 +100,15 @@ export const deleteComment = async (req, res) => {
  * @type RequestHandler
  */
 export const updateComment = async (req, res) => {
-  const { error, value } = validateComment(req.body);
+  const commentContent = req.body.content || req.body.body;
+  
+  // Validate the content
+  const schema = Joi.object({
+    content: Joi.string().min(6).max(1000).required(),
+  });
+  
+  const { error, value } = schema.validate({ content: commentContent });
+  
   if (error) return res.unprocessable({ error: error.details[0].message });
 
   try {
@@ -105,7 +120,7 @@ export const updateComment = async (req, res) => {
       return res.forbidden({ error: 'Not authorized to update this comment' });
 
     const updatedComment = await Comment.updateById(req.params.comment_id, {
-      content: value.body,
+      content: value.content,
     });
 
     res.ok({ data: updatedComment });
