@@ -5,7 +5,7 @@ import express from 'express';
 const router = express.Router();
 
 const bugOpenCloseLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
+  windowMs: 60 * 60 * 1000,
   max: 2,
   message: { error: "Hey stop that. don't try to break it." },
 });
@@ -32,6 +32,6 @@ router.get('/:bugId/reactions', BugsController.getReactions);
 router.patch('/:bugId/reactions', BugsController.addOrRemoveReaction);
 router.get('/:bugId/reactions/:username', BugsController.getReactionsByUsers);
 router.get('/:bugId/timeline', BugsController.getTimeline);
-router.delete('/:bugId/labels/:name', BugsController.deleteLabel)
+router.delete('/:bugId/labels/:name', BugsController.deleteLabel);
 
 export default router;

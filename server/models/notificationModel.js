@@ -20,13 +20,14 @@ class Notification {
   static async create(notificationData) {
     const { message, user_id, bug_id } = notificationData;
     
-    const [notification] = await db('notifications').insert({
+    const [notificationId] = await db('notifications').insert({
       message,
       read: false,
       user_id,
       bug_id,
-    }).returning('*');
+    });
     
+    const notification = await db('notifications').where({ id: notificationId }).first();
     return notification;
   }
 

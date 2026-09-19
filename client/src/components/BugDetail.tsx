@@ -51,7 +51,6 @@ const BugDetail: React.FC = () => {
     e.preventDefault();
     if (!commentText.trim() || !user) return;
 
-    // Client-side validation
     if (commentText.trim().length < 6) {
       setCommentError('Comment must be at least 6 characters');
       return;
@@ -84,127 +83,213 @@ const BugDetail: React.FC = () => {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
-  if (!bug) return <div className="text-center py-12 bg-white rounded-lg shadow"><p className="text-gray-500">Bug not found</p></div>;
+  if (loading) return (
+    <div className="min-h-screen bg-base-200 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <span className="loading loading-spinner loading-lg text-primary"></span>
+        <span className="text-gray-500">Loading bug details...</span>
+      </div>
+    </div>
+  );
+  
+  if (!bug) return (
+    <div className="min-h-screen bg-base-200 flex items-center justify-center">
+      <div className="card bg-base-100 shadow border border-base-200">
+        <div className="card-body text-center py-12">
+          <div className="text-6xl mb-4">🐛</div>
+          <h3 className="text-xl font-semibold mb-2">Bug Not Found</h3>
+          <p className="text-gray-500 mb-4">The bug you're looking for doesn't exist.</p>
+          <button onClick={() => navigate('/')} className="btn btn-primary">
+            Back to Bugs
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-base-200">
+      <div className="container mx-auto p-4 md:p-6 lg:p-8">
         <button
           onClick={() => navigate('/')}
-          className="mb-6 text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-2"
+          className="btn btn-ghost mb-6 gap-2"
         >
-          ← Back to Bugs
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to Bugs
         </button>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
-            {error}
+          <div className="alert alert-error mb-6 shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex items-start justify-between mb-4">
-            <h1 className="text-3xl font-bold text-gray-900">
-              #{bug.number} {bug.title}
-            </h1>
-            <span
-              className={`px-3 py-1 rounded-full text-sm font-medium ${
-                bug.status === 'open'
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-red-100 text-red-800'
-              }`}
-            >
-              {bug.status}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4 text-sm text-gray-600 mb-6">
-            <span>by {bug.author.username}</span>
-            <span>•</span>
-            <span>{new Date(bug.created_at).toLocaleDateString()}</span>
-          </div>
-
-          <div className="prose max-w-none mb-6">
-            <p className="text-gray-700 whitespace-pre-wrap">{bug.description}</p>
-          </div>
-
-          {bug.labels && bug.labels.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-6">
-              {bug.labels.map((label) => (
-                <span
-                  key={label}
-                  className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-medium"
-                >
-                  {label}
-                </span>
-              ))}
-            </div>
-          )}
-
-          <button
-            onClick={handleToggleStatus}
-            className={`px-6 py-2 rounded-lg font-medium transition ${
-              bug.status === 'open'
-                ? 'bg-red-600 text-white hover:bg-red-700'
-                : 'bg-green-600 text-white hover:bg-green-700'
-            }`}
-          >
-            {bug.status === 'open' ? 'Close Bug' : 'Reopen Bug'}
-          </button>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Comments ({comments.length})
-          </h2>
-
-          {user && (
-            <form onSubmit={handleCommentSubmit} className="mb-6">
-              {commentError && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-                  {commentError}
+        <div className="card bg-base-100 shadow-xl mb-6 border border-base-200">
+          <div className="card-body">
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-2xl md:text-3xl font-bold">
+                    #{bug.number} {bug.title}
+                  </h1>
+                  <div className={`badge ${bug.status === 'open' ? 'badge-success' : 'badge-error'} gap-1`}>
+                    {bug.status === 'open' ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    )}
+                    {bug.status}
+                  </div>
                 </div>
-              )}
-              <textarea
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Add a comment..."
-                rows={4}
-                minLength={6}
-                maxLength={1000}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition resize-none"
-              />
-              <div className="text-sm text-gray-500 mt-1">
-                {commentText.length}/1000 characters (min 6)
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-2">
+                    <div className="avatar placeholder">
+                      <div className="bg-neutral text-neutral-content rounded-full w-8">
+                        <span className="text-xs">{bug.author.username.charAt(0).toUpperCase()}</span>
+                      </div>
+                    </div>
+                    <span className="font-medium">{bug.author.username}</span>
+                  </div>
+                  <span className="text-gray-400">•</span>
+                  <span>{new Date(bug.created_at).toLocaleDateString()}</span>
+                </div>
               </div>
               <button
-                type="submit"
-                disabled={!commentText.trim()}
-                className="mt-3 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-300 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                onClick={handleToggleStatus}
+                className={`btn ${bug.status === 'open' ? 'btn-error' : 'btn-success'} gap-2`}
               >
-                Post Comment
+                {bug.status === 'open' ? (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Close Bug
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Reopen Bug
+                  </>
+                )}
               </button>
-            </form>
-          )}
+            </div>
 
-          <div className="space-y-4">
-            {comments.map((comment) => (
-              <div
-                key={comment.id}
-                className="border-b border-gray-200 pb-4 last:border-0"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-gray-900">
-                    {comment.author.username}
+            <div className="prose max-w-none mb-6 bg-base-50 p-4 rounded-lg">
+              <p className="text-gray-700 whitespace-pre-wrap">{bug.description}</p>
+            </div>
+
+            {bug.labels && bug.labels.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-6">
+                {bug.labels.map((label) => (
+                  <span key={label} className="badge badge-outline badge-primary">
+                    {label}
                   </span>
-                  <span className="text-sm text-gray-500">
-                    {new Date(comment.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-                <p className="text-gray-700 whitespace-pre-wrap">{comment.content}</p>
+                ))}
               </div>
-            ))}
+            )}
+          </div>
+        </div>
+
+        <div className="card bg-base-100 shadow-xl border border-base-200">
+          <div className="card-body">
+            <h2 className="card-title text-xl mb-6 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              Comments ({comments.length})
+            </h2>
+
+            {user && (
+              <div className="card bg-base-50 border border-base-200 mb-6">
+                <div className="card-body">
+                  <form onSubmit={handleCommentSubmit} className="space-y-4">
+                    {commentError && (
+                      <div className="alert alert-error">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>{commentError}</span>
+                      </div>
+                    )}
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text font-medium">Add a comment...</span>
+                        <span className="label-text-alt text-gray-400">6-1000 characters</span>
+                      </label>
+                      <textarea
+                        value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
+                        placeholder="Share your thoughts on this bug..."
+                        className="textarea textarea-bordered focus:textarea-primary"
+                        rows={4}
+                        minLength={6}
+                        maxLength={1000}
+                      />
+                      <label className="label">
+                        <span className="label-text-alt">{commentText.length}/1000 characters</span>
+                      </label>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={!commentText.trim()}
+                      className="btn btn-primary gap-2"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      </svg>
+                      Post Comment
+                    </button>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {comments.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  <p>No comments yet. Be the first to comment!</p>
+                </div>
+              ) : (
+                comments.map((comment) => (
+                  <div key={comment.id} className="card bg-base-50 border border-base-200">
+                    <div className="card-body py-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3 flex-1">
+                          <div className="avatar placeholder">
+                            <div className="bg-neutral text-neutral-content rounded-full w-10">
+                              <span className="text-sm">{comment.author.username.charAt(0).toUpperCase()}</span>
+                            </div>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-semibold">{comment.author.username}</span>
+                              <span className="text-sm text-gray-500">
+                                {new Date(comment.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <p className="text-gray-700 whitespace-pre-wrap">{comment.content}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -1,5 +1,4 @@
 import Joi from 'joi';
-import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import {
   User,
@@ -7,9 +6,7 @@ import {
   validateUserLogin,
 } from '../models/userModel.js';
 import { Bug } from '../models/bugModel.js';
-import { Token } from '../models/tokenModel.js';
 import { extractUsernameFromEmail } from '../utils/index.js';
-import { sendVerificationEmail } from '../utils/emailService.js';
 import db from '../config/database.js';
 
 
@@ -37,24 +34,8 @@ export const signup = async (req, res) => {
       avatarUrl,
     });
 
-    // create email verification token
-    const tokenString = crypto.randomBytes(16).toString('hex');
-    const savedToken = await Token.create({
-      token: tokenString,
-      user_id: savedUser.id,
-    });
-
-    if (!savedToken)
-      return res.internalError({
-        error: "Something wen't wrong while verifying email",
-      });
-    // create verification link and send email
-    const verificationLink = `http://${req.headers.host}/api/user/verify-email?token=${tokenString}`;
-    await sendVerificationEmail(savedUser.email, tokenString);
-
     res.created({
       data: {
-        isVerified: savedUser.isVerified,
         avatarUrl: savedUser.avatarUrl,
         id: savedUser.id,
         email: savedUser.email,
@@ -83,8 +64,7 @@ export const login = async (req, res) => {
     const user = await User.findByEmail(value.email);
     if (!user) return res.notFound({ error: 'Email does not exists' });
 
-    // make sure user is verified
-    if (!user.isVerified) return res.forbidden({ error: 'Email not verified' });
+
 
     // user only signed up with google
     const provider = JSON.parse(user.provider || '[]');
@@ -103,7 +83,6 @@ export const login = async (req, res) => {
     const token = jwt.sign(
       {
         sub: user.id,
-        isVerified: user.isVerified,
         username: user.username,
         provider: provider,
         name: user.name,
@@ -120,7 +99,6 @@ export const login = async (req, res) => {
       .cookie('jwt', token, { maxAge: 2 * 3600000, httpOnly: true })
       .send({
         data: {
-          isVerified: user.isVerified,
           username: user.username,
           provider: provider,
           name: user.name,
@@ -168,36 +146,6 @@ export const updateBio = async (req, res) => {
 
 export const checkAuth = (req, res) => {
   res.ok({ data: req.user });
-};
-
-export const verifyEmail = async (req, res) => {
-  try {
-    // find token
-    const token = await Token.findByToken(req.query.token);
-    if (!token)
-      return res.notFound({ error: 'Unable to find verification token' });
-
-    // find user with matching token
-    const user = await User.findById(token.user_id);
-    if (!user)
-      return res.notFound({
-        error: 'Unable to find matching user & token for verification',
-      });
-    if (user.isVerified)
-      return res.badRequest({ error: 'User is already verified' });
-
-    // everything looks good! save user
-    const savedUser = await User.updateById(user.id, { isVerified: true });
-    if (!savedUser)
-      return res.internalError({ error: 'Error while verifying user' });
-
-    res.redirect('/');
-  } catch (err) {
-    console.log(err);
-    res.internalError({
-      error: 'Something went wrong while verifying email address',
-    });
-  }
 };
 
 export const getByUsername = async (req, res) => {

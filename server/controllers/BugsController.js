@@ -6,7 +6,6 @@ import {
   validateReferences,
 } from '../models/bugModel.js';
 import { Notification } from '../models/notificationModel.js';
-import { NOTIFY_TYPES } from '../constants.js';
 
 /**
  * @route GET /api/bugs/
@@ -16,9 +15,7 @@ import { NOTIFY_TYPES } from '../constants.js';
 export const getBugs = async (req, res) => {
   try {
     const bugs = await Bug.findAll(req.query);
-    if (!bugs || bugs.length === 0) return res.notFound({ error: 'Not Found' });
-
-    res.ok({ data: bugs });
+    res.ok({ data: bugs || [] });
   } catch (err) {
     res.internalError({
       error: 'Something went wrong while getting bugs',
@@ -35,9 +32,7 @@ export const getSuggestions = async (req, res) => {
   try {
     const bugs = await Bug.findAll();
     const suggestions = bugs.map(bug => ({ number: bug.number, title: bug.title }));
-    if (!suggestions || suggestions.length === 0) return res.notFound({ error: 'Not Found' });
-
-    res.ok({ data: suggestions });
+    res.ok({ data: suggestions || [] });
   } catch (err) {
     res.internalError({
       error: 'Something went wrong while getting bugs',

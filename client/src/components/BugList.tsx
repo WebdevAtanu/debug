@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { bugsService } from '../services/bugsService';
 import type { Bug } from '../services/bugsService';
-import { useAuth } from '../contexts/AuthContext';
 
 const BugList: React.FC = () => {
   const [bugs, setBugs] = useState<Bug[]>([]);
@@ -12,7 +11,6 @@ const BugList: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createError, setCreateError] = useState('');
   const [newBug, setNewBug] = useState({ title: '', description: '', labels: [] as string[] });
-  const { user } = useAuth();
 
   useEffect(() => {
     fetchBugs();
@@ -37,7 +35,6 @@ const BugList: React.FC = () => {
     e.preventDefault();
     setCreateError('');
 
-    // Client-side validation
     if (newBug.title.length < 6) {
       setCreateError('Title must be at least 6 characters');
       return;
@@ -75,153 +72,193 @@ const BugList: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Bugs</h1>
-          <div className="mt-4 sm:mt-0 flex space-x-2">
-            <button
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                filter === 'all'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
-              onClick={() => setFilter('all')}
-            >
-              All
-            </button>
-            <button
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                filter === 'open'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
-              onClick={() => setFilter('open')}
-            >
-              Open
-            </button>
-            <button
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                filter === 'closed'
-                  ? 'bg-red-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
-              onClick={() => setFilter('closed')}
-            >
-              Closed
-            </button>
+    <div className="min-h-screen bg-base-200">
+      <div className="container mx-auto p-4 md:p-6 lg:p-8">
+        <div className="mb-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-base-content mb-2">🐛 Bug Tracker</h1>
+              <p className="text-gray-600">Track and manage your bugs efficiently</p>
+            </div>
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
-              className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition font-medium"
+              className="btn btn-primary btn-lg shadow-lg gap-2"
             >
-              {showCreateForm ? 'Cancel' : '+ New Bug'}
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+              </svg>
+              {showCreateForm ? 'Cancel' : 'New Bug'}
+            </button>
+          </div>
+          
+          <div className="tabs tabs-boxed bg-base-100 mt-6 p-1">
+            <button
+              className={`tab ${filter === 'all' ? 'tab-active' : ''}`}
+              onClick={() => setFilter('all')}
+            >
+              All Bugs ({bugs.length})
+            </button>
+            <button
+              className={`tab ${filter === 'open' ? 'tab-active' : ''}`}
+              onClick={() => setFilter('open')}
+            >
+              Open ({bugs.filter(b => b.status === 'open').length})
+            </button>
+            <button
+              className={`tab ${filter === 'closed' ? 'tab-active' : ''}`}
+              onClick={() => setFilter('closed')}
+            >
+              Closed ({bugs.filter(b => b.status === 'closed').length})
             </button>
           </div>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
-            {error}
+          <div className="alert alert-error mb-6 shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
           </div>
         )}
 
         {showCreateForm && (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Create New Bug</h2>
-            {createError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-                {createError}
-              </div>
-            )}
-            <form onSubmit={handleCreateBug} className="space-y-4">
-              <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                  Title <span className="text-gray-400">(6-100 characters)</span>
-                </label>
-                <input
-                  type="text"
-                  id="title"
-                  value={newBug.title}
-                  onChange={(e) => setNewBug({ ...newBug, title: e.target.value })}
-                  required
-                  minLength={6}
-                  maxLength={100}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
-                  placeholder="Bug title"
-                />
-              </div>
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                  Description <span className="text-gray-400">(6-1000 characters)</span>
-                </label>
-                <textarea
-                  id="description"
-                  value={newBug.description}
-                  onChange={(e) => setNewBug({ ...newBug, description: e.target.value })}
-                  required
-                  minLength={6}
-                  maxLength={1000}
-                  rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition resize-none"
-                  placeholder="Describe the bug..."
-                />
-              </div>
-              <button
-                type="submit"
-                className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition font-medium"
-              >
-                Create Bug
-              </button>
-            </form>
+          <div className="card bg-base-100 shadow-xl mb-6 border border-base-200">
+            <div className="card-body">
+              <h2 className="card-title text-xl">Create New Bug</h2>
+              {createError && (
+                <div className="alert alert-error">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{createError}</span>
+                </div>
+              )}
+              <form onSubmit={handleCreateBug} className="space-y-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text font-medium">Bug Title</span>
+                    <span className="label-text-alt text-gray-400">6-100 characters</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newBug.title}
+                    onChange={(e) => setNewBug({ ...newBug, title: e.target.value })}
+                    placeholder="Enter bug title..."
+                    className="input input-bordered focus:input-primary"
+                    required
+                    minLength={6}
+                    maxLength={100}
+                  />
+                </div>
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text font-medium">Description</span>
+                    <span className="label-text-alt text-gray-400">6-1000 characters</span>
+                  </label>
+                  <textarea
+                    value={newBug.description}
+                    onChange={(e) => setNewBug({ ...newBug, description: e.target.value })}
+                    placeholder="Describe the bug in detail..."
+                    className="textarea textarea-bordered focus:textarea-primary"
+                    required
+                    minLength={6}
+                    maxLength={1000}
+                    rows={4}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button type="submit" className="btn btn-primary flex-1">
+                    Create Bug
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateForm(false)}
+                    className="btn btn-ghost"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <div className="flex flex-col items-center gap-4">
+              <span className="loading loading-spinner loading-lg text-primary"></span>
+              <span className="text-gray-500">Loading bugs...</span>
+            </div>
           </div>
         ) : (
           <div className="grid gap-4">
             {filteredBugs.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-lg shadow">
-                <p className="text-gray-500">No bugs found</p>
+              <div className="card bg-base-100 shadow border border-base-200">
+                <div className="card-body text-center py-12">
+                  <div className="text-6xl mb-4">🐛</div>
+                  <h3 className="text-xl font-semibold mb-2">No bugs found</h3>
+                  <p className="text-gray-500">
+                    {filter === 'all' 
+                      ? "There are no bugs in the system yet. Create your first bug!" 
+                      : `No ${filter} bugs found.`}
+                  </p>
+                </div>
               </div>
             ) : (
               filteredBugs.map((bug) => (
-                <div
-                  key={bug.id}
-                  className="bg-white rounded-lg shadow hover:shadow-md transition p-6"
-                >
-                  <Link to={`/bugs/${bug.number}`}>
-                    <h3 className="text-xl font-semibold text-gray-900 hover:text-indigo-600 transition">
-                      #{bug.number} {bug.title}
-                    </h3>
-                  </Link>
-                  <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-gray-600">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        bug.status === 'open'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {bug.status}
-                    </span>
-                    <span>by {bug.author.username}</span>
-                    <span>{new Date(bug.created_at).toLocaleDateString()}</span>
-                  </div>
-                  {bug.labels && bug.labels.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {bug.labels.map((label) => (
-                        <span
-                          key={label}
-                          className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-medium"
-                        >
-                          {label}
-                        </span>
-                      ))}
+                <div key={bug.id} className="card bg-base-100 shadow hover:shadow-lg transition-all duration-200 border border-base-200 hover:border-primary/30">
+                  <div className="card-body">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <Link to={`/bugs/${bug.number}`} className="text-xl font-semibold hover:text-primary transition-colors flex items-center gap-2">
+                          <span className="text-gray-400 font-normal">#{bug.number}</span>
+                          {bug.title}
+                        </Link>
+                        <div className="flex flex-wrap items-center gap-3 mt-3">
+                          <div className={`badge ${bug.status === 'open' ? 'badge-success' : 'badge-error'} gap-1`}>
+                            {bug.status === 'open' ? (
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                              </svg>
+                            ) : (
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            )}
+                            {bug.status}
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <div className="avatar placeholder">
+                              <div className="bg-neutral text-neutral-content rounded-full w-6">
+                                <span className="text-xs">{bug.author.username.charAt(0).toUpperCase()}</span>
+                              </div>
+                            </div>
+                            <span>{bug.author.username}</span>
+                          </div>
+                          <span className="text-sm text-gray-500">
+                            {new Date(bug.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        {bug.labels && bug.labels.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            {bug.labels.map((label) => (
+                              <span key={label} className="badge badge-outline badge-primary">
+                                {label}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="hidden md:flex">
+                        <Link to={`/bugs/${bug.number}`} className="btn btn-ghost btn-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </Link>
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               ))
             )}

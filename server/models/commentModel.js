@@ -58,13 +58,14 @@ class Comment {
   static async create(commentData) {
     const { content, bug_id, author_id, reactions = {} } = commentData;
     
-    const [comment] = await db('comments').insert({
+    const [commentId] = await db('comments').insert({
       content,
       bug_id,
       author_id,
       reactions: JSON.stringify(reactions),
-    }).returning('*');
+    });
     
+    const comment = await db('comments').where({ id: commentId }).first();
     const author = await db('users').where({ id: author_id }).first();
     comment.author = {
       name: author.name,
@@ -83,7 +84,9 @@ class Comment {
       updateData.reactions = JSON.stringify(updateData.reactions);
     }
     
-    const [comment] = await db('comments').where({ id }).update(updateData).returning('*');
+    await db('comments').where({ id }).update(updateData);
+    
+    const comment = await db('comments').where({ id }).first();
     
     if (comment) {
       const author = await db('users').where({ id: comment.author_id }).first();

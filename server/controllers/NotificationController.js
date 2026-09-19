@@ -2,7 +2,6 @@ import Joi from 'joi';
 import { User } from '../models/userModel.js';
 import { Bug } from '../models/bugModel.js';
 import { Notification } from '../models/notificationModel.js';
-import { NOTIFY_TYPES } from '../constants.js';
 
 /**
  * @route GET /api/notifications

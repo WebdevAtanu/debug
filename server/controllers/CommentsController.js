@@ -1,7 +1,6 @@
 import { Bug } from '../models/bugModel.js';
 import { Comment, validateComment } from '../models/commentModel.js';
 import { Notification } from '../models/notificationModel.js';
-import { NOTIFY_TYPES } from '../constants.js';
 import Joi from 'joi';
 
 /**

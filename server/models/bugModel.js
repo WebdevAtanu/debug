@@ -98,7 +98,7 @@ class Bug {
     const [maxBug] = await db('bugs').max('number as max_number');
     const nextNumber = (maxBug?.max_number || 0) + 1;
     
-    const [bug] = await db('bugs').insert({
+    const [bugId] = await db('bugs').insert({
       number: nextNumber,
       title,
       description,
@@ -106,8 +106,9 @@ class Bug {
       labels: JSON.stringify(labels),
       reactions: JSON.stringify(reactions),
       author_id,
-    }).returning('*');
+    });
     
+    const bug = await db('bugs').where({ id: bugId }).first();
     const author = await db('users').where({ id: author_id }).first();
     bug.author = {
       name: author.name,
@@ -131,7 +132,9 @@ class Bug {
       updateData.reactions = JSON.stringify(updateData.reactions);
     }
     
-    const [bug] = await db('bugs').where({ id }).update(updateData).returning('*');
+    await db('bugs').where({ id }).update(updateData);
+    
+    const bug = await db('bugs').where({ id }).first();
     
     if (bug) {
       const author = await db('users').where({ id: bug.author_id }).first();
@@ -161,7 +164,7 @@ const validateBug = (bug) => {
   const schema = Joi.object({
     title: Joi.string().min(6).max(100).required(),
     description: Joi.string().min(6).max(1000).required(),
-    author_id: Joi.number().required(),
+    author_id: Joi.number().optional(),
     status: Joi.string().valid('open', 'closed').default('open'),
     labels: Joi.array()
       .items(Joi.string().valid(...VALID_LABELS))

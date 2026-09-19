@@ -32,7 +32,7 @@ class User {
     
     const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
     
-    const [user] = await db('users').insert({
+    const [userId] = await db('users').insert({
       name,
       username: username.toLowerCase(),
       email: email.toLowerCase(),
@@ -42,9 +42,10 @@ class User {
       avatar,
       avatarUrl,
       bio: bio || '404 Bio Not Found',
-      isVerified: false,
-    }).returning('*');
+      isVerified: true,
+    });
     
+    const user = await db('users').where({ id: userId }).first();
     delete user.password;
     return user;
   }

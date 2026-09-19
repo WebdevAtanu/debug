@@ -32,7 +32,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const userData = await authService.getCurrentUser();
       setUser(userData.data);
-      socketService.connect();
+      // Only connect socket if auth succeeds
+      try {
+        socketService.connect();
+      } catch (socketError) {
+        console.error('Socket connection failed:', socketError);
+        // Don't block auth if socket fails
+      }
     } catch (error) {
       console.error('Auth check failed:', error);
       setUser(null);
@@ -45,7 +51,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const response = await authService.login({ email, password });
       setUser(response.data);
-      socketService.connect();
+      try {
+        socketService.connect();
+      } catch (socketError) {
+        console.error('Socket connection failed:', socketError);
+      }
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -56,7 +66,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const response = await authService.signup({ name, email, password });
       setUser(response.data);
-      socketService.connect();
+      try {
+        socketService.connect();
+      } catch (socketError) {
+        console.error('Socket connection failed:', socketError);
+      }
     } catch (error) {
       console.error('Signup error:', error);
       throw error;

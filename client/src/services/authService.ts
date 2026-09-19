@@ -18,7 +18,6 @@ export interface User {
   name: string;
   bio?: string;
   avatarUrl?: string;
-  isVerified: boolean;
   provider?: string[];
 }
 
@@ -45,11 +44,6 @@ export const authService = {
 
   checkAuth: async () => {
     const response = await api.post('/user/check-auth');
-    return response.data;
-  },
-
-  verifyEmail: async (token: string) => {
-    const response = await api.get(`/user/verify-email?token=${token}`);
     return response.data;
   },
 

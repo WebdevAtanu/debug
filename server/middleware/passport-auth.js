@@ -44,7 +44,6 @@ const GoogleAuthCallback = async (accessToken, refreshToken, profile, done) => {
     console.log('User does not exist');
     const savedUser = await User.create({
       username: extractUsernameFromEmail(profile._json.email),
-      isVerified: true,
       name: profile.displayName,
       provider: ['google'],
       googleId: profile.id,

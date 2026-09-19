@@ -1,10 +1,14 @@
-import { Server } from 'socket.io'; // Import the Server class from the socket.io package
+import { Server } from 'socket.io';
 
-let io; // Socket.io instance
+let io;
 
-// Initialize Socket.io with the provided HTTP server
 export const initializeSocket = (server) => {
-  io = new Server(server); // Initialize Socket.io with the provided server
+  io = new Server(server, {
+    cors: {
+      origin: process.env.CLIENT_URL || 'http://localhost:5173',
+      credentials: true,
+    },
+  });
 
   io.on('connection', (socket) => {
     console.log('New client connected via Socket.io');
@@ -24,7 +28,6 @@ export const initializeSocket = (server) => {
   return io;
 };
 
-// Get the Socket.io instance
 export const getSocketInstance = () => {
   if (!io) {
     throw new Error('Socket.io not initialized. Call initializeSocket first.');

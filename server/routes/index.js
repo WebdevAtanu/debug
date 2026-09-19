@@ -3,8 +3,12 @@ import userRoute from './userRoute.js';
 import notificationsRoute from './notificationsRoute.js';
 import bugsRoute from './bugsRoute.js';
 import commentsRoute from './commentsRoute.js';
+import * as BugsController from '../controllers/BugsController.js';
 
 export const setupRoutes = (app) => {
+  // Public bug suggestions route
+  app.get('/api/bugs/suggestions', BugsController.getSuggestions);
+
   // Notifications routes (protected)
   app.use(
     '/api/notifications',
